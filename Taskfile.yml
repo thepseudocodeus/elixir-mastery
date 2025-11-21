@@ -1,0 +1,60 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    desc: Runs task -a to provide available commands.
+    cmds:
+      - task -a
+    silent: true
+
+  setup-python:
+    desc: Initializes uv and adds core python libraries to project
+    cmds:
+      - echo "Initializing uv for python usage in project"
+      - uv init
+      - echo "uv initialized"
+      - uv add mypy pytest loguru typer pylint
+      - mkdir python
+
+  run-py:
+    desc: Run main.py
+    cmds:
+      - echo "Running python main.py the entry point for python applications in this projecct."
+      - uv run main.py
+      - echo "Python applications done."
+
+  new-phx-app:
+    desc: Create a new elixir phoenix application
+    cmds:
+      - echo "Creating new elixir phoenix application"
+      - mix phx.new {{.CLI_ARGS}} --live
+      - echo "Done"
+
+  new-phx-app-bin:
+    desc: Create a new elixir phoenix application
+    cmds:
+      - echo "Creating new elixir phoenix application"
+      - mix phx.new {{.CLI_ARGS}} --live --binary-id
+      - echo "Done"
+
+  setup-new-phx:
+    desc: Configure new phoenix project
+    cmds:
+      - cd {{.CLI_ARGS}}
+      - mix ecto.create
+      - mix phx.server
+
+  todo-dev:
+    desc: Develop the todo elixir-phoenix application
+    cmds:
+      - nvim todo
+
+  serve-todo:
+    desc: Launch the todo app
+    cmds:
+      - ./todo/serve

@@ -1,0 +1,175 @@
+defmodule TodoWeb.TodoLive do
+  use TodoWeb, :live_view
+
+  def mount(_params, _session, socket) do
+    {:ok,
+     assign(socket,
+       todos: [],
+       new_todo: "",
+       filter: :all
+     )}
+  end
+
+  # Create
+  def handle_event("add_todo", %{"todo" => todo_text}, socket) do
+    if String.trim(todo_text) == "" do
+      {:noreply, socket}
+    else
+      new_todo = %{
+        id: System.unique_integer([:positive]),
+        text: todo_text,
+        completed: false,
+        editing: false
+      }
+
+      {:noreply,
+       socket
+       |> update(:todos, fn todos -> todos ++ [new_todo] end)
+       |> assign(:new_todo, "")}
+    end
+  end
+
+  # Modify completion status
+  def handle_event("toggle", %{"id" => id}, socket) do
+    id = String.to_integer(id)
+
+    updated_todos =
+      Enum.map(socket.assigns.todos, fn todo ->
+        if todo.id == id do
+          Map.update!(todo, :completed, fn completed -> !completed end)
+        else
+          todo
+        end
+      end)
+
+    {:noreply, assign(socket, todos: updated_todos)}
+  end
+
+  # Delete a todo
+  def handle_event("delete", %{"id" => id}, socket) do
+    # Convert string ID to integer
+    id = String.to_integer(id)
+
+    # Filter out the todo with the matching ID
+    updated_todos = Enum.reject(socket.assigns.todos, fn todo -> todo.id == id end)
+
+    # Update the state with the filtered todo list
+    {
+      :noreply,
+      assign(socket, todos: updated_todos)
+    }
+  end
+
+  # Input field change handler
+  def handle_event("form_change", %{"todo" => new_value}, socket) do
+    # Update form input value as user types
+    {:noreply, assign(socket, new_todo: new_value)}
+  end
+
+  def handle_event("filter", %{"filter" => filter}, socket) do
+    # Convert string filter to atom
+    filter = String.to_existing_atom(filter)
+
+    # Update the filter state
+    {:noreply, assign(socket, filter: filter)}
+  end
+
+  defp filtered_todos(todos, filter) do
+    case filter do
+      # Show all todos
+      :all -> todos
+      # Show uncommpleted
+      :active -> Enum.filter(todos, fn todo -> !todo.completed end)
+      # Show completed
+      :completed -> Enum.filter(todos, fn todo -> todo.completed end)
+    end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div class="todo-container">
+      <h1>Todo List</h1>
+      
+    <!-- Todo Form -->
+      <form phx-submit="add_todo" class="add-form">
+        <!-- input with phx-change monitoring changes -->
+        <input
+          type="text"
+          name="todo"
+          placeholder="What needs to be done?"
+          value={@new_todo}
+          phx-change="form_change"
+          autofocus
+          class="todo-input"
+        />
+
+        <button type="submit" class="add-button">Add</button>
+      </form>
+      
+    <!-- Filter contros -->
+      <div class="filters">
+        <!-- button using phx-click to send events to elixir when clicked -->
+        <button
+          phx-click="filter"
+          phx-value-filter="all"
+          class={"filter-btn #{if @filter == :all, do: "active"}"}
+        >
+          All
+        </button>
+        <button
+          phx-click="filter"
+          phx-value-filter="active"
+          class={"filter-btn #{if @filter == :active, do: "acttive"}"}
+        >
+          Active
+        </button>
+        <button
+          phx-click="filter"
+          phx-value-filter="completed"
+          class={"filter-btn #{if @filter == :commpleted, do: "active"}" }
+        >
+          Completed
+        </button>
+      </div>
+      
+    <!-- Todo list -->
+      <ul class="todo-list">
+        <!-- Loop through filtered todos -->
+        <%= for todo <- filtered_todos(@todos, @filter) do %>
+          <li class={"todo-item #{if todo.completed, do: "completed"}"}>
+            <div class="todo-content">
+              <!-- Toggle commpletion status -->
+              <input
+                type="checkbox"
+                phx-click="toggle"
+                phx-value-id={todo.id}
+                checked={todo.completed}
+                class="todo-checkbox"
+              />
+              
+    <!-- Todo text -->
+              <span class="todo-text">
+                {todo.text}
+              </span>
+              
+    <!-- Delete Button -->
+              <button
+                phx-click="delete"
+                phx-value-id={todo.id}
+                class="delete-btn"
+              >
+                x
+              </button>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+      
+    <!-- Counter at the bottom -->
+      <div class="todo-count">
+        {length(Enum.filter(@todos, fn todo -> !todo.completed end))}
+      </div>
+    </div>
+    """
+  end
+end

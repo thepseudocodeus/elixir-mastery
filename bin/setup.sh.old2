@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Script Name   : setup.sh
+# Description   : Template for robust Bash scripting with argument parsing,
+#                 error handling, logging, and cleanup.
+# Author        : A.J. Igherighe
+# Date          : 2025-11-20
+# Version       : 1.1.0
+# License       : GNUv3.0
+#===============================================================================
+
+# --- Safety First (Defensive Shell Programming) ---
+set -o errexit  # Abort on any command failure.
+set -o nounset  # Error on use of undefined variables.
+set -o pipefail # Fail a pipeline if *any* command fails.
+IFS=$'\n\t'     # More predictable word splitting.
+
+# --- Constants and Defaults ---
+SCRIPT_NAME=$(basename "$0")
+VERBOSE=false
+INPUT_FILE=""
+
+# --- Logging Functions (Core Observability) ---
+log_info() { echo "[INFO]    $*" >&2; }
+log_warn() { echo "[WARNING] $*" >&2; }
+log_error() { echo "[ERROR]   $*" >&2; }
+log_debug() { [[ "$VERBOSE" == true ]] && echo "[DEBUG]   $*" >&2; }
+
+# --- Usage Information (Self-Documentation) ---
+usage() {
+  cat <<EOF
+Usage: $SCRIPT_NAME [OPTIONS]
+
+Options:
+  -h, --help        Show this help message and exit
+  -v, --verbose     Enable verbose output
+  -f, --file FILE   Specify an input file
+
+Examples:
+  $SCRIPT_NAME -v -f input.txt
+EOF
+  exit 0
+}
+
+# --- Cleanup Function ---
+cleanup() {
+  log_debug "Performing cleanup..."
+  # Example: rm -f "$TEMP_FILE"
+}
+trap cleanup EXIT # Always run cleanup on exit, even on failure.
+
+# --- Parameter Parsing ---
+parse_params() {
+  # Long-option handling using getopt for robustness
+  local options
+  options=$(getopt -o hvf: -l help,verbose,file: -- "$@") || {
+    log_error "Invalid options."
+    usage
+  }
+  eval set -- "$options"
+
+  while true; do
+    case "$1" in
+    -h | --help) usage ;;
+    -v | --verbose) VERBOSE=true ;;
+    -f | --file)
+      INPUT_FILE=$2
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      log_error "Unknown option: $1"
+      usage
+      ;;
+    esac
+    shift
+  done
+
+  # Validation
+  if [[ -z "$INPUT_FILE" ]]; then
+    log_error "Input file is required."
+    usage
+  elif [[ ! -r "$INPUT_FILE" ]]; then
+    log_error "Input file '$INPUT_FILE' not readable."
+    exit 1
+  fi
+}
+
+# --- Core Functionality ---
+hello() {
+  echo "Hello World"
+}
+
+process_file() {
+  local file=$1
+  log_debug "Processing file: $file"
+  # Example: line count
+  local line_count
+  line_count=$(wc -l <"$file")
+  log_info "File '$file' has $line_count lines."
+}
+
+# --- Main Execution ---
+main() {
+  parse_params "$@"
+  log_info "Starting script."
+  [[ "$VERBOSE" == true ]] && log_debug "Verbose mode is on."
+
+  process_file "$INPUT_FILE"
+  hello
+
+  log_info "Script completed successfully."
+}
+
+main "$@"

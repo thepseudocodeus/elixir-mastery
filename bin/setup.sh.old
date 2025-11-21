@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+# --- Script Header ---
+# Script Name: my_script.sh
+# Description: This script performs a specific task.
+# Author: Your Name
+# Date: YYYY-MM-DD
+# Version: 1.0.0
+# License: MIT or other appropriate license
+
+# --- Error Handling and Safety ---
+set -o errexit  # Exit immediately if a command exits with a non-zero status.
+set -o nounset  # Treat unset variables as an error and exit.
+set -o pipefail # Exit if any command in a pipeline fails.
+
+# --- Global Variables (use sparingly) ---
+# For example:
+# LOG_FILE="/var/log/my_script.log"
+hello() {
+  echo "Hello World"
+}
+
+# --- Functions ---
+
+# usage()
+# Displays the script's usage information.
+usage() {
+  echo "Usage: $0 [OPTIONS]"
+  echo "  -h, --help    Display this help message."
+  echo "  -v, --verbose Enable verbose output."
+  echo "  -f, --file    Specify an input file (e.g., -f /path/to/file.txt)."
+  exit 0
+}
+
+# cleanup()
+# Performs any necessary cleanup before exiting.
+cleanup() {
+  echo "Performing cleanup..."
+  # Add any cleanup commands here (e.g., removing temporary files)
+}
+
+# parse_params()
+# Parses command-line parameters.
+parse_params() {
+  local OPTIND
+  while getopts "hvf:" opt; do
+    case "${opt}" in
+    h) usage ;;
+    v) VERBOSE=true ;;
+    f) INPUT_FILE="${OPTARG}" ;;
+    *) usage ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  # Add validation for required parameters here
+  if [[ -z "${INPUT_FILE}" ]]; then
+    echo "Error: Input file is required." >&2
+    usage
+  fi
+}
+
+# main()
+# The main logic of the script.
+main() {
+  parse_params "$@"
+
+  echo "Script started."
+  # Add your main script logic here
+  if [[ "${VERBOSE}" = true ]]; then
+    echo "Verbose mode enabled."
+  fi
+  echo "Processing file: ${INPUT_FILE}"
+  # Example: cat "${INPUT_FILE}"
+  #
+  hello
+
+  echo "Script finished."
+}
+
+# --- Main Execution ---
+trap cleanup EXIT # Ensure cleanup() is called on script exit.
+main "$@"
